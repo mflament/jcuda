@@ -8,10 +8,12 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
 
+import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
+
 public final class KernelFunction {
 
     private final Method method;
-    private final Pointer functionPtr;
+    private final CUfunction functionPtr;
     private final BlockDimFactory blockDimFactory;
     private final GridDimFactory gridDimFactory;
     private final SharedMemorySupplier sharedMemorySupplier;
@@ -20,7 +22,7 @@ public final class KernelFunction {
     private final long nativeArgumentsSize;
     private final int kernelParameterCount;
 
-    public KernelFunction(Method method, Pointer functionPtr,
+    public KernelFunction(Method method, CUfunction functionPtr,
                           BlockDimFactory blockDimFactory,
                           GridDimFactory gridDimFactory,
                           List<KernelArgumentWriter<Object>> argumentWriters,
@@ -34,14 +36,13 @@ public final class KernelFunction {
         this.sharedMemorySupplier = sharedMemorySupplier;
         this.nativeArgumentsSize = nativeArgumentsSize;
         this.kernelParameterCount = kernelParameterCount;
-
     }
 
     public Method method() {
         return method;
     }
 
-    public Pointer functionPtr() {
+    public CUfunction functionPtr() {
         return functionPtr;
     }
 

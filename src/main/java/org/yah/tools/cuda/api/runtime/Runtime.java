@@ -1,4 +1,4 @@
-package org.yah.tools.cuda.api;
+package org.yah.tools.cuda.api.runtime;
 
 import com.sun.jna.Library;
 import com.sun.jna.Pointer;

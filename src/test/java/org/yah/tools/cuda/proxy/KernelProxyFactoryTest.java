@@ -9,15 +9,15 @@ import org.yah.tools.cuda.proxy.annotations.GridDim;
 import org.yah.tools.cuda.proxy.annotations.GridThreads;
 import org.yah.tools.cuda.proxy.annotations.Kernel;
 import org.yah.tools.cuda.proxy.services.Writable;
-import org.yah.tools.cuda.support.CudaContextPointer;
 import org.yah.tools.cuda.support.DriverSupport;
-import org.yah.tools.cuda.support.device.DevicePointer;
-import org.yah.tools.cuda.support.program.CudaProgramBuilder;
-import org.yah.tools.cuda.support.program.CudaProgramPointer;
+import org.yah.tools.cuda.support.program.NVRTCProgramBuilder;
 
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.yah.tools.cuda.api.driver.Driver.CUcontext;
+import static org.yah.tools.cuda.api.driver.Driver.CUdevice;
+import static org.yah.tools.cuda.api.nvrtc.NVRTC.nvrtcProgram;
 import static org.yah.tools.cuda.support.DriverSupport.*;
 
 class KernelProxyFactoryTest {
@@ -28,42 +28,43 @@ class KernelProxyFactoryTest {
     void createModule() {
         String src = TestsHelper.loadSource("module_build_test1.cu");
 
-        DevicePointer device = DriverSupport.getDevice(0);
-        CudaContextPointer ctx = device.createContext(0);
-        ctx.setCurrent();
+        CUdevice device = DriverSupport.getDevice(0);
+        try (CUcontext ctx = device.createContext()) {
+            ctx.setCurrent();
 
-        CudaProgramPointer program = CudaProgramBuilder.create(src)
-                .withProgramName("test_program")
-                .withComputeVersion(device)
-                .build();
+            nvrtcProgram program = NVRTCProgramBuilder.create(src)
+                    .programName("test_program")
+                    .computeVersion(device)
+                    .build();
 
-        KernelProxyFactory kernelProxyFactory = new KernelProxyFactory();
-        int N = 512;
-        int[] a = randomInts(N), b = randomInts(N);
-        try (Memory hostMemory = new Memory(N * (long) Integer.BYTES);
-             TestModule module = kernelProxyFactory.createKernelProxy(program, TestModule.class)) {
-            Pointer aPtr = copyToDevice(a, hostMemory), bPtr = copyToDevice(b, hostMemory), cPtr = allocateInts(N);
-            module.sum(dim3.fromThreads(new dim3(N), new dim3(TestModule.BLOCK_DIM)), N, aPtr, bPtr, cPtr);
+            KernelProxyFactory kernelProxyFactory = new KernelProxyFactory();
+            int N = 102400;
+            int[] a = randomInts(N), b = randomInts(N);
+            try (Memory hostMemory = new Memory(N * (long) Integer.BYTES);
+                 TestModule module = kernelProxyFactory.createKernelProxy(program, TestModule.class)) {
+                Pointer aPtr = copyToDevice(a, hostMemory), bPtr = copyToDevice(b, hostMemory), cPtr = allocateInts(N);
+                module.sum(dim3.fromThreads(new dim3(N), new dim3(TestModule.BLOCK_DIM)), N, aPtr, bPtr, cPtr);
 
-            check(driverAPI().cuMemcpyDtoH(hostMemory, cPtr, N * (long) Integer.BYTES));
-            for (int i = 0; i < N; i++) {
-                int expected = a[i] + b[i];
-                int actual = hostMemory.getInt(i * Integer.BYTES);
-                assertEquals(expected, actual);
-            }
-            synchronizeContext();
+                check(driverAPI().cuMemcpyDtoH(hostMemory, cPtr, N * (long) Integer.BYTES));
+                for (int i = 0; i < N; i++) {
+                    int expected = a[i] + b[i];
+                    int actual = hostMemory.getInt(i * Integer.BYTES);
+                    assertEquals(expected, actual);
+                }
+                synchronizeContext();
 
-            DeviceIntArray aIntArray = new DeviceIntArray(aPtr);
-            DeviceIntArray bIntArray = new DeviceIntArray(bPtr);
-            DeviceIntArray cIntArray = new DeviceIntArray(cPtr);
-            module.sum2(N, aIntArray, bIntArray, cIntArray);
-            synchronizeContext();
+                DeviceIntArray aIntArray = new DeviceIntArray(aPtr);
+                DeviceIntArray bIntArray = new DeviceIntArray(bPtr);
+                DeviceIntArray cIntArray = new DeviceIntArray(cPtr);
+                module.sum2(N, aIntArray, bIntArray, cIntArray);
+                synchronizeContext();
 
-            check(driverAPI().cuMemcpyDtoH(hostMemory, cPtr, N * (long) Integer.BYTES));
-            for (int i = 0; i < N; i++) {
-                int expected = a[i] + b[i];
-                int actual = hostMemory.getInt(i * Integer.BYTES);
-                assertEquals(expected, actual);
+                check(driverAPI().cuMemcpyDtoH(hostMemory, cPtr, N * (long) Integer.BYTES));
+                for (int i = 0; i < N; i++) {
+                    int expected = a[i] + b[i];
+                    int actual = hostMemory.getInt(i * Integer.BYTES);
+                    assertEquals(expected, actual);
+                }
             }
         }
     }

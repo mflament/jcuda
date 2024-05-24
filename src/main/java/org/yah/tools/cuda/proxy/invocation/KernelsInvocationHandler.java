@@ -16,6 +16,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
+import static org.yah.tools.cuda.api.driver.Driver.CUmodule;
 import static org.yah.tools.cuda.support.DriverSupport.check;
 import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
 
@@ -25,7 +27,7 @@ import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
  */
 public class KernelsInvocationHandler implements InvocationHandler {
 
-    private final Pointer module;
+    private final CUmodule module;
     private final Map<InvocationKey, KernelFunction> kernelFunctions;
 
     /**
@@ -37,7 +39,7 @@ public class KernelsInvocationHandler implements InvocationHandler {
      */
     private final Memory parameterPointers;
 
-    public KernelsInvocationHandler(Pointer module, List<KernelFunction> kernelFunctions) {
+    public KernelsInvocationHandler(CUmodule module, List<KernelFunction> kernelFunctions) {
         this.module = module;
         this.kernelFunctions = kernelFunctions.stream().collect(Collectors.toMap(InvocationKey::new, Function.identity()));
 
@@ -51,7 +53,7 @@ public class KernelsInvocationHandler implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws InvocationTargetException, IllegalAccessException {
         if (method.getName().equals("close") && method.getParameterCount() == 0) {
-            check(driverAPI().cuModuleUnload(module));
+            module.close();
             return null;
         }
 
@@ -79,7 +81,7 @@ public class KernelsInvocationHandler implements InvocationHandler {
             kernelArgIndex++;
         }
 
-        Pointer funcPtr = kernelFunction.functionPtr();
+        CUfunction funcPtr = kernelFunction.functionPtr();
         check(driverAPI().cuLaunchKernel(funcPtr,
                 gridDim.x(), gridDim.y(), gridDim.z(),
                 blockDim.x(), blockDim.y(), blockDim.z(),

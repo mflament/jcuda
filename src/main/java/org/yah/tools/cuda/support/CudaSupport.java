@@ -3,9 +3,9 @@ package org.yah.tools.cuda.support;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
-import org.yah.tools.cuda.api.Driver;
-import org.yah.tools.cuda.api.NVRTC;
-import org.yah.tools.cuda.api.Runtime;
+import org.yah.tools.cuda.api.driver.Driver;
+import org.yah.tools.cuda.api.nvrtc.NVRTC;
+import org.yah.tools.cuda.api.runtime.Runtime;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -105,4 +105,6 @@ public final class CudaSupport {
             throw new IllegalStateException("CUDA_PATH " + cudaPathVar + " directory not found");
         return cudaPath;
     }
+
+
 }

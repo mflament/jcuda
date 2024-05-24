@@ -3,11 +3,11 @@ package org.yah.tools.cuda.support;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
-import org.yah.tools.cuda.api.Runtime;
+import org.yah.tools.cuda.api.runtime.Runtime;
 
 import javax.annotation.Nullable;
 
-import static org.yah.tools.cuda.support.NTSHelper.readNTS;
+import static org.yah.tools.cuda.support.NativeSupport.readNTS;
 
 public class RuntimeSupport {
 

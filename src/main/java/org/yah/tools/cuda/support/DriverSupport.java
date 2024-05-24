@@ -1,14 +1,16 @@
 package org.yah.tools.cuda.support;
 
-import com.sun.jna.ptr.PointerByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yah.tools.cuda.api.Driver;
-import org.yah.tools.cuda.support.device.DevicePointer;
+import org.yah.tools.cuda.api.driver.CUresult;
+import org.yah.tools.cuda.api.driver.Driver;
 
 import javax.annotation.Nullable;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 
-import static org.yah.tools.cuda.support.NTSHelper.readNTS;
+import static org.yah.tools.cuda.api.driver.Driver.CUdevice;
 
 public class DriverSupport {
 
@@ -20,29 +22,27 @@ public class DriverSupport {
     public static synchronized Driver driverAPI() {
         if (driver == null) {
             driver = CudaSupport.createDriverAPI();
-            int error = driverAPI().cuInit(0);
-            if (error != 0)
-                throw new CudaException("nvcuda", error, "?");
+            check(driver.cuInit(0));
+            IntBuffer intBuffer = ByteBuffer.allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder()).asIntBuffer();
+            check(driver.cuDriverGetVersion(intBuffer));
+            int version = intBuffer.get(0);
+            LOGGER.info("initialized driver API {}.{}", version / 1000, version % 1000 / 10);
         }
         return driver;
     }
 
-    public static synchronized DevicePointer getDevice(int ordinal) {
-        PointerByReference ptrRef = new PointerByReference();
-        check(driverAPI().cuDeviceGet(ptrRef, ordinal));
-        DevicePointer devicePointer = new DevicePointer(ptrRef);
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Using device {} : {}", ordinal, devicePointer.getDeviceName());
-        }
-        return devicePointer;
+    public static synchronized CUdevice getDevice(int ordinal) {
+        CUdevice.ByReference reference = new CUdevice.ByReference();
+        check(driverAPI().cuDeviceGet(reference, ordinal));
+        CUdevice device = reference.getValue();
+        if (LOGGER.isInfoEnabled())
+            LOGGER.info("Using device {} : {}", ordinal, device.getDeviceName());
+        return device;
     }
 
-    public static void check(int status) {
-        if (status != 0) {
-            PointerByReference strRef = new PointerByReference();
-            driverAPI().cuGetErrorName(status, strRef);
-            String error = readNTS(strRef.getValue(), 256);
-            throw new CudaException("nvcuda", status, error);
+    public static void check(CUresult result) {
+        if (result != CUresult.CUDA_SUCCESS) {
+            throw new CudaException("nvcuda", result);
         }
     }
 

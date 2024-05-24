@@ -1,6 +1,5 @@
 package org.yah.tools.cuda.proxy.invocation;
 
-import com.sun.jna.Pointer;
 import org.yah.tools.cuda.proxy.KernelBindingException;
 import org.yah.tools.cuda.proxy.annotations.BlockDim;
 import org.yah.tools.cuda.proxy.annotations.GridDim;
@@ -22,13 +21,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
+
 public class KernelFunctionFactory {
 
     private final ServiceFactory serviceFactory;
     private final TypeWriterRegistry writerRegistry;
-    private final Function<String, Pointer> functionPointerResolver;
+    private final Function<String, CUfunction> functionPointerResolver;
 
-    public KernelFunctionFactory(ServiceFactory serviceFactory, TypeWriterRegistry writerRegistry, Function<String, Pointer> functionPointerResolver) {
+    public KernelFunctionFactory(ServiceFactory serviceFactory, TypeWriterRegistry writerRegistry, Function<String, CUfunction> functionPointerResolver) {
         this.serviceFactory = serviceFactory;
         this.writerRegistry = writerRegistry;
         this.functionPointerResolver = functionPointerResolver;
@@ -44,7 +45,7 @@ public class KernelFunctionFactory {
             throw new KernelBindingException("Kernel method " + method + " must return void");
 
         String functionName = annotation.name().isBlank() ? method.getName() : annotation.name();
-        Pointer function = functionPointerResolver.apply(functionName);
+        CUfunction function = functionPointerResolver.apply(functionName);
 
         dim3 kernelBlockDim = new dim3(annotation.blockDim());
         BlockDimFactory blockDimFactory = args -> kernelBlockDim;

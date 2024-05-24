@@ -1,4 +1,4 @@
-package org.yah.tools.cuda.support.device;
+package org.yah.tools.cuda.api.driver;
 
 @SuppressWarnings("unused")
 public enum CUdevice_attribute {

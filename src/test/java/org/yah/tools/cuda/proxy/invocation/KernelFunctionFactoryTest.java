@@ -26,12 +26,13 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
 
 class KernelFunctionFactoryTest {
 
     private ServiceFactory serviceFactory;
     private TypeWriterRegistry writerRegistry;
-    private Function<String, Pointer> functionPointerResolver;
+    private Function<String, CUfunction> functionPointerResolver;
     private KernelFunctionFactory factory;
 
     @SuppressWarnings("unchecked")
@@ -55,7 +56,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void withGriDim() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("test01")).thenReturn(functionPointer);
         KernelFunction kernelFunction = factory.create(getMethod("withGriDim"));
         assertNotNull(kernelFunction);
@@ -71,7 +72,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void withGridThreads() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("test02")).thenReturn(functionPointer);
         KernelFunction kernelFunction = factory.create(getMethod("withGridThreads"));
         assertNotNull(kernelFunction);
@@ -98,7 +99,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void argIsGridDimX() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("argIsGridDimX")).thenReturn(functionPointer);
         KernelFunction kernelFunction = factory.create(getMethod("argIsGridDimX"));
         assertNotNull(kernelFunction);
@@ -114,7 +115,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void argIsGridDim() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("argIsGridDim")).thenReturn(functionPointer);
         KernelFunction kernelFunction = factory.create(getMethod("argIsGridDim"));
         assertNotNull(kernelFunction);
@@ -130,7 +131,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void argIsGridThreads() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("argIsGridThreads")).thenReturn(functionPointer);
         KernelFunction kernelFunction = factory.create(getMethod("argIsGridThreads"));
         assertNotNull(kernelFunction);
@@ -146,7 +147,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void argIsExposedGridThreads() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("argIsExposedGridThreads")).thenReturn(functionPointer);
         when(writerRegistry.find(dim3.class)).thenReturn(Optional.of(DefaultWriters.Dim3Writer.INSTANCE));
         KernelFunction kernelFunction = factory.create(getMethod("argIsExposedGridThreads"));
@@ -159,7 +160,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void argIsSharedMem() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("argIsSharedMem")).thenReturn(functionPointer);
         KernelFunction kernelFunction = factory.create(getMethod("argIsSharedMem"));
         assertNotNull(kernelFunction);
@@ -174,7 +175,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void argIsExposedSharedMem() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("argIsExposedSharedMem")).thenReturn(functionPointer);
         when(writerRegistry.find(int.class)).thenReturn(Optional.of(DefaultWriters.IntegerWriter.INSTANCE));
         KernelFunction kernelFunction = factory.create(getMethod("argIsExposedSharedMem"));
@@ -191,7 +192,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void argIsWritable() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("argIsWritable")).thenReturn(functionPointer);
         when(writerRegistry.find(Writable.class)).thenReturn(Optional.of(DefaultWriters.WritableWriter.INSTANCE));
         KernelFunction kernelFunction = factory.create(getMethod("argIsWritable"));
@@ -204,7 +205,7 @@ class KernelFunctionFactoryTest {
 
     @Test
     void argHasCustomWriter() {
-        Pointer functionPointer = new Pointer(0);
+        CUfunction functionPointer = new CUfunction(0);
         when(functionPointerResolver.apply("argHasCustomWriter")).thenReturn(functionPointer);
         TestWriter testWriter = new TestWriter();
         when(serviceFactory.getInstance(same(TestWriter.class), any())).thenReturn(testWriter);
