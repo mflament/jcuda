@@ -15,9 +15,11 @@ import org.yah.tools.cuda.support.program.NVRTCProgramBuilder;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.yah.tools.cuda.api.driver.Driver.CUcontext;
-import static org.yah.tools.cuda.api.driver.Driver.CUdevice;
-import static org.yah.tools.cuda.api.nvrtc.NVRTC.nvrtcProgram;
+
+import org.yah.tools.cuda.api.driver.CUcontext;
+import org.yah.tools.cuda.api.driver.CUdevice;
+
+import org.yah.tools.cuda.api.nvrtc.nvrtcProgram;
 import static org.yah.tools.cuda.support.DriverSupport.*;
 
 class KernelProxyFactoryTest {
@@ -45,7 +47,7 @@ class KernelProxyFactoryTest {
                 Pointer aPtr = copyToDevice(a, hostMemory), bPtr = copyToDevice(b, hostMemory), cPtr = allocateInts(N);
                 module.sum(dim3.fromThreads(new dim3(N), new dim3(TestModule.BLOCK_DIM)), N, aPtr, bPtr, cPtr);
 
-                check(driverAPI().cuMemcpyDtoH(hostMemory, cPtr, N * (long) Integer.BYTES));
+                cuCheck(driverAPI().cuMemcpyDtoH(hostMemory, cPtr, N * (long) Integer.BYTES));
                 for (int i = 0; i < N; i++) {
                     int expected = a[i] + b[i];
                     int actual = hostMemory.getInt(i * Integer.BYTES);
@@ -59,7 +61,7 @@ class KernelProxyFactoryTest {
                 module.sum2(N, aIntArray, bIntArray, cIntArray);
                 synchronizeContext();
 
-                check(driverAPI().cuMemcpyDtoH(hostMemory, cPtr, N * (long) Integer.BYTES));
+                cuCheck(driverAPI().cuMemcpyDtoH(hostMemory, cPtr, N * (long) Integer.BYTES));
                 for (int i = 0; i < N; i++) {
                     int expected = a[i] + b[i];
                     int actual = hostMemory.getInt(i * Integer.BYTES);
@@ -72,13 +74,13 @@ class KernelProxyFactoryTest {
     private Pointer copyToDevice(int[] a, Memory hostMemory) {
         hostMemory.write(0, a, 0, a.length);
         Pointer ptr = allocateInts(a.length);
-        check(driverAPI().cuMemcpyHtoD(ptr, hostMemory, a.length * (long) Integer.BYTES));
+        cuCheck(driverAPI().cuMemcpyHtoD(ptr, hostMemory, a.length * (long) Integer.BYTES));
         return ptr;
     }
 
     private Pointer allocateInts(int n) {
         PointerByReference ptr = new PointerByReference();
-        check(driverAPI().cuMemAlloc(ptr, n * (long) Integer.BYTES));
+        cuCheck(driverAPI().cuMemAlloc(ptr, n * (long) Integer.BYTES));
         return ptr.getValue();
     }
 

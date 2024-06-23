@@ -26,7 +26,8 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
+
+import org.yah.tools.cuda.api.driver.CUfunction;
 
 class KernelFunctionFactoryTest {
 

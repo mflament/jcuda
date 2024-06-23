@@ -35,6 +35,18 @@ public final class NativeSupport {
         return sb.toString();
     }
 
+    public static String readNTS(Pointer pointer) {
+        StringBuilder sb = new StringBuilder();
+        int pos = 0;
+        while (true) {
+            byte b = pointer.getByte(pos++);
+            if (b == 0)
+                break;
+            sb.append((char) b);
+        }
+        return sb.toString();
+    }
+
     public static Pointer writeNTS(Pointer dst, String src) {
         byte[] bytes = src.getBytes(StandardCharsets.US_ASCII);
         dst.write(0, bytes,0, bytes.length);

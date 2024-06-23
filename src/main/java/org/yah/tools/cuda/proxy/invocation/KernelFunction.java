@@ -1,6 +1,5 @@
 package org.yah.tools.cuda.proxy.invocation;
 
-import com.sun.jna.Pointer;
 import org.yah.tools.cuda.proxy.dim3;
 import org.yah.tools.cuda.proxy.services.KernelArgumentWriter;
 
@@ -8,7 +7,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
 
-import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
+import org.yah.tools.cuda.api.driver.CUfunction;
 
 public final class KernelFunction {
 

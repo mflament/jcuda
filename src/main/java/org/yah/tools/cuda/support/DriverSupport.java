@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 
-import static org.yah.tools.cuda.api.driver.Driver.CUdevice;
+import org.yah.tools.cuda.api.driver.CUdevice;
 
 public class DriverSupport {
 
@@ -22,9 +22,9 @@ public class DriverSupport {
     public static synchronized Driver driverAPI() {
         if (driver == null) {
             driver = CudaSupport.createDriverAPI();
-            check(driver.cuInit(0));
+            cuCheck(driver.cuInit(0));
             IntBuffer intBuffer = ByteBuffer.allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder()).asIntBuffer();
-            check(driver.cuDriverGetVersion(intBuffer));
+            cuCheck(driver.cuDriverGetVersion(intBuffer));
             int version = intBuffer.get(0);
             LOGGER.info("initialized driver API {}.{}", version / 1000, version % 1000 / 10);
         }
@@ -33,20 +33,20 @@ public class DriverSupport {
 
     public static synchronized CUdevice getDevice(int ordinal) {
         CUdevice.ByReference reference = new CUdevice.ByReference();
-        check(driverAPI().cuDeviceGet(reference, ordinal));
+        cuCheck(driverAPI().cuDeviceGet(reference, ordinal));
         CUdevice device = reference.getValue();
         if (LOGGER.isInfoEnabled())
             LOGGER.info("Using device {} : {}", ordinal, device.getDeviceName());
         return device;
     }
 
-    public static void check(CUresult result) {
+    public static void cuCheck(CUresult result) {
         if (result != CUresult.CUDA_SUCCESS) {
             throw new CudaException("nvcuda", result);
         }
     }
 
     public static void synchronizeContext() {
-        check(driverAPI().cuCtxSynchronize());
+        cuCheck(driverAPI().cuCtxSynchronize());
     }
 }

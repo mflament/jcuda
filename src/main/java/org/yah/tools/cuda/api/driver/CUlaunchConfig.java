@@ -20,7 +20,7 @@ public class CUlaunchConfig extends Structure {
     private int gridDimX;
     private int gridDimY;
     private int gridDimZ;
-    private Driver.CUstream hStream;
+    private CUstream hStream;
     private int numAttrs;
     private int sharedMemBytes;
 
@@ -40,11 +40,11 @@ public class CUlaunchConfig extends Structure {
         this.numAttrs = numAttrs;
     }
 
-    public Driver.CUstream gethStream() {
+    public CUstream gethStream() {
         return hStream;
     }
 
-    public void sethStream(Driver.CUstream hStream) {
+    public void sethStream(CUstream hStream) {
         this.hStream = hStream;
     }
 

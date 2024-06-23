@@ -3,6 +3,10 @@ package org.yah.tools.cuda.support.module;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import org.junit.jupiter.api.Test;
+import org.yah.tools.cuda.api.driver.CUcontext;
+import org.yah.tools.cuda.api.driver.CUdevice;
+import org.yah.tools.cuda.api.driver.CUfunction;
+import org.yah.tools.cuda.api.driver.CUmodule;
 import org.yah.tools.cuda.support.DriverSupport;
 import org.yah.tools.cuda.support.NativeSupport;
 import org.yah.tools.cuda.support.library.CudaModuleSupport;
@@ -14,9 +18,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.yah.tools.cuda.api.driver.Driver.*;
-import static org.yah.tools.cuda.api.nvrtc.NVRTC.nvrtcProgram;
-import static org.yah.tools.cuda.support.DriverSupport.check;
+import org.yah.tools.cuda.api.nvrtc.nvrtcProgram;
+import static org.yah.tools.cuda.support.DriverSupport.cuCheck;
 import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
 
 class CudaModuleSupportTest {
@@ -27,11 +30,11 @@ class CudaModuleSupportTest {
         try (CUcontext ctx = device.createContext()) {
             ctx.setCurrent();
 
-            Path file = Path.of("src/test/resources/nvrtcTest.cubin");
+            Path file = Path.of("src/test/resources/nvrtcTest.ptx");
             Memory data = NativeSupport.loadFile(file);
             try (CUmodule module = CudaModuleSupport.createModule(data)) {
                 CUfunction.ByReference hfunc = new CUfunction.ByReference();
-                check(driverAPI().cuModuleGetFunction(hfunc, module, "_ZN7sandbox10TestKernel3addEiPdS1_S1_NS0_16KernelTestStructE"));
+                cuCheck(driverAPI().cuModuleGetFunction(hfunc, module, "_ZN7sandbox10TestKernel3addEiPdS1_S1_NS0_16KernelTestStructE"));
                 Pointer funcPtr = hfunc.getValue();
                 System.out.println(funcPtr);
             }

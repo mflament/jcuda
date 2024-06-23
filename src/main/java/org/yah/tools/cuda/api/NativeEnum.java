@@ -18,6 +18,8 @@ public interface NativeEnum extends NativeMapped {
 
     int ordinal();
 
+    String name();
+
     default int nativeValue() {
         return ordinal();
     }

@@ -4,14 +4,14 @@ import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yah.tools.cuda.api.driver.CUmodule;
+import org.yah.tools.cuda.api.driver.CUresult;
+import org.yah.tools.cuda.api.nvrtc.nvrtcProgram;
 import org.yah.tools.cuda.support.CudaException;
 
 import java.nio.file.Path;
 
-import static org.yah.tools.cuda.api.driver.Driver.CUmodule;
-import static org.yah.tools.cuda.api.nvrtc.NVRTC.nvrtcProgram;
-import static org.yah.tools.cuda.api.runtime.Runtime.CUDA_ERROR_INVALID_IMAGE;
-import static org.yah.tools.cuda.support.DriverSupport.check;
+import static org.yah.tools.cuda.support.DriverSupport.cuCheck;
 import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
 import static org.yah.tools.cuda.support.NativeSupport.readNTS;
 
@@ -23,9 +23,9 @@ public class CudaModuleSupport {
         try (Memory ptx = program.getPTX()) {
             CUmodule.ByReference moduleRef = new CUmodule.ByReference();
             try {
-                check(driverAPI().cuModuleLoadData(moduleRef, ptx));
+                cuCheck(driverAPI().cuModuleLoadData(moduleRef, ptx));
             } catch (CudaException e) {
-                if (e.getStatus() == CUDA_ERROR_INVALID_IMAGE)
+                if (e.getError() == CUresult.CUDA_ERROR_INVALID_IMAGE)
                     LOGGER.info("PTX:\n{}", readNTS(ptx, ptx.size()));
                 throw e;
             }
@@ -35,13 +35,13 @@ public class CudaModuleSupport {
 
     public static CUmodule createModule(Path file) {
         CUmodule.ByReference reference = new CUmodule.ByReference();
-        check(driverAPI().cuModuleLoad(reference, file.toString()));
+        cuCheck(driverAPI().cuModuleLoad(reference, file.toString()));
         return reference.getValue();
     }
 
     public static CUmodule createModule(Pointer image) {
         CUmodule.ByReference reference = new CUmodule.ByReference();
-        check(driverAPI().cuModuleLoadData(reference, image));
+        cuCheck(driverAPI().cuModuleLoadData(reference, image));
         return reference.getValue();
     }
 

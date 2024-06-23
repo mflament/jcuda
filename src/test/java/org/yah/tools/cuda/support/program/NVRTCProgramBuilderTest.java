@@ -3,15 +3,13 @@ package org.yah.tools.cuda.support.program;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import org.junit.jupiter.api.Test;
-import org.yah.tools.cuda.api.driver.Driver;
-import org.yah.tools.cuda.api.nvrtc.NVRTC;
+import org.yah.tools.cuda.api.driver.CUdevice;
+import org.yah.tools.cuda.api.nvrtc.nvrtcProgram;
 import org.yah.tools.cuda.support.DriverSupport;
 import org.yah.tools.cuda.support.NativeSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.yah.tools.cuda.TestsHelper.loadSource;
-import static org.yah.tools.cuda.api.driver.Driver.*;
-import static org.yah.tools.cuda.api.nvrtc.NVRTC.*;
 
 class NVRTCProgramBuilderTest {
 

@@ -16,9 +16,9 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
-import static org.yah.tools.cuda.api.driver.Driver.CUmodule;
-import static org.yah.tools.cuda.support.DriverSupport.check;
+import org.yah.tools.cuda.api.driver.CUfunction;
+import org.yah.tools.cuda.api.driver.CUmodule;
+import static org.yah.tools.cuda.support.DriverSupport.cuCheck;
 import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
 
 /**
@@ -82,7 +82,7 @@ public class KernelsInvocationHandler implements InvocationHandler {
         }
 
         CUfunction funcPtr = kernelFunction.functionPtr();
-        check(driverAPI().cuLaunchKernel(funcPtr,
+        cuCheck(driverAPI().cuLaunchKernel(funcPtr,
                 gridDim.x(), gridDim.y(), gridDim.z(),
                 blockDim.x(), blockDim.y(), blockDim.z(),
                 sharedMemory, Pointer.NULL, parameterPointers, Pointer.NULL));

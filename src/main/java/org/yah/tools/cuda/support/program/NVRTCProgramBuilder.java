@@ -3,16 +3,15 @@ package org.yah.tools.cuda.support.program;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
-import com.sun.jna.ptr.PointerByReference;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yah.tools.cuda.api.driver.Driver;
+import org.yah.tools.cuda.api.driver.CUdevice;
 import org.yah.tools.cuda.api.nvrtc.NVRTC;
-import org.yah.tools.cuda.api.nvrtc.NVRTC.nvrtcResult;
-import org.yah.tools.cuda.support.NativeSupport;
+import org.yah.tools.cuda.api.nvrtc.nvrtcProgram;
+import org.yah.tools.cuda.api.nvrtc.nvrtcResult;
 import org.yah.tools.cuda.support.NVRTCSupport;
-import org.yah.tools.cuda.api.driver.CUdevice_attribute;
+import org.yah.tools.cuda.support.NativeSupport;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -21,18 +20,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
-import static org.yah.tools.cuda.api.driver.Driver.*;
-import static org.yah.tools.cuda.api.nvrtc.NVRTC.*;
-import static org.yah.tools.cuda.support.NVRTCSupport.check;
 import static org.yah.tools.cuda.support.NVRTCSupport.nvrtc;
+import static org.yah.tools.cuda.support.NVRTCSupport.nvrtcCheck;
 
 public class NVRTCProgramBuilder {
 
@@ -44,11 +36,17 @@ public class NVRTCProgramBuilder {
     }
 
     private final String source;
+
     @Nullable
     private String programName;
+
+    private String computeVersion;
+    private String smVersion;
+
     private final List<Path> includeDirectories = new ArrayList<>();
     private final Map<String, String> includeEntries = new LinkedHashMap<>();
     private final List<String> compileOptions = new ArrayList<>();
+    private final Set<String> nameExpressions = new LinkedHashSet<>();
     private boolean scanIncludes = true;
 
     private NVRTCProgramBuilder(String source) {
@@ -79,6 +77,11 @@ public class NVRTCProgramBuilder {
 
     public NVRTCProgramBuilder includeDirectories(Path... includeDirectories) {
         this.includeDirectories.addAll(Arrays.asList(includeDirectories));
+        return this;
+    }
+
+    public NVRTCProgramBuilder nameExpression(String... nameExpressions) {
+        this.nameExpressions.addAll(Arrays.asList(nameExpressions));
         return this;
     }
 
@@ -123,25 +126,21 @@ public class NVRTCProgramBuilder {
      * @see <a href="https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/">Matching CUDA arch and CUDA gencode for various NVIDIA architectures</a>
      */
     public NVRTCProgramBuilder computeVersion(String version) {
-        return compileOptions(String.format("-arch=compute_%s", version));
+        this.computeVersion = version;
+        return this;
     }
 
     public NVRTCProgramBuilder smVersion(String version) {
-        return compileOptions(String.format("-arch=sm_%s", version));
+        this.smVersion = version;
+        return this;
     }
 
     public NVRTCProgramBuilder computeVersion(CUdevice device) {
-        return computeVersion(deviceComputeCapability(device));
+        return computeVersion(device.getComputeCapabilityVersion());
     }
 
     public NVRTCProgramBuilder smVersion(CUdevice device) {
-        return smVersion(deviceComputeCapability(device));
-    }
-
-    private String deviceComputeCapability(CUdevice device) {
-        int[] cc = device.getDeviceAttributes(CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
-                CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR);
-        return String.format("%d%d", cc[0], cc[1]);
+        return smVersion(device.getComputeCapabilityVersion());
     }
 
     public nvrtcProgram build() {
@@ -160,9 +159,15 @@ public class NVRTCProgramBuilder {
         }
 
         nvrtcProgram.ByReference ptrRef = new nvrtcProgram.ByReference();
-        check(nvrtc().nvrtcCreateProgram(ptrRef, source, programName, loadedIncludes.size(), headers, includeNames));
+        NVRTC nvrtc = nvrtc();
+        nvrtcCheck(nvrtc.nvrtcCreateProgram(ptrRef, source, programName, loadedIncludes.size(), headers, includeNames));
         nvrtcProgram prog = new nvrtcProgram(ptrRef.getValue());
         Memory optionPtrs = null, optionsBuffer = null;
+
+        if (smVersion != null)
+            compileOptions(String.format("--gpu-architecture=sm_%s", smVersion));
+        if (computeVersion != null)
+            compileOptions(String.format("--gpu-architecture=compute_%s", computeVersion));
         if (!compileOptions.isEmpty()) {
             optionPtrs = new Memory((long) compileOptions.size() * Native.POINTER_SIZE);
             long optionsBufferSize = compileOptions.stream().mapToLong(s -> s.length() + 1).sum();
@@ -174,13 +179,18 @@ public class NVRTCProgramBuilder {
                 optionPtr = NativeSupport.writeNTS(optionPtr, compileOption);
             }
         }
-        nvrtcResult nvrtcResult = nvrtc().nvrtcCompileProgram(prog, compileOptions.size(), optionPtrs);
-        if (nvrtcResult == NVRTC.nvrtcResult.NVRTC_ERROR_COMPILATION) {
+
+        for (String nameExpression : nameExpressions) {
+            nvrtcCheck(nvrtc.nvrtcAddNameExpression(prog, nameExpression));
+        }
+
+        nvrtcResult result = nvrtc.nvrtcCompileProgram(prog, compileOptions.size(), optionPtrs);
+        if (result == nvrtcResult.NVRTC_ERROR_COMPILATION) {
             String programLog = NVRTCSupport.getProgramLog(prog);
             prog.close();
             throw new BuildProgramException(programLog);
         } else {
-            NVRTCSupport.check(nvrtcResult);
+            NVRTCSupport.nvrtcCheck(result);
         }
         return prog;
     }

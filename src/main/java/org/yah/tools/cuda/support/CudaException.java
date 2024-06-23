@@ -3,24 +3,21 @@ package org.yah.tools.cuda.support;
 import org.yah.tools.cuda.api.NativeEnum;
 
 public class CudaException extends RuntimeException {
+
     private final String module;
-    private final int status;
+    private final NativeEnum error;
 
-    public <E extends Enum<?> & NativeEnum> CudaException(String module, E error) {
-        this(module, error.nativeValue(), error.name());
-    }
-
-    public CudaException(String module, int status, String errorName) {
-        super(String.format("%s error %d: %s", module, status, errorName));
+    public CudaException(String module, NativeEnum error) {
+        super(String.format("%s error %d: %s", module, error.nativeValue(), error.name()));
         this.module = module;
-        this.status = status;
+        this.error = error;
     }
 
     public String getModule() {
         return module;
     }
 
-    public int getStatus() {
-        return status;
+    public NativeEnum getError() {
+        return error;
     }
 }

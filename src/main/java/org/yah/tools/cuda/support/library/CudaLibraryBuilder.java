@@ -8,54 +8,47 @@ import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.Map;
 
-import static org.yah.tools.cuda.api.driver.Driver.CULibrary;
-import static org.yah.tools.cuda.support.DriverSupport.check;
+import org.yah.tools.cuda.api.driver.CULibrary;
+import static org.yah.tools.cuda.support.DriverSupport.cuCheck;
 import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
 
 public class CudaLibraryBuilder {
-    private Pointer code;
-    private Path file;
-    private final Map<CUjit_option, Object> jitOptions = new EnumMap<>(CUjit_option.class);
-    private final Map<CUlibraryOption, Object> libraryOptions = new EnumMap<>(CUlibraryOption.class);
+    private final Pointer image;
+    private final Path file;
 
-    public Pointer code() {
-        return code;
+    private final Map<CUjit_option, Pointer> jitOptions = new EnumMap<>(CUjit_option.class);
+    private final Map<CUlibraryOption, Pointer> libraryOptions = new EnumMap<>(CUlibraryOption.class);
+
+    public CudaLibraryBuilder(Pointer image) {
+        this.image = image;
+        this.file = null;
     }
 
-    public CudaLibraryBuilder code(Pointer code) {
-        this.code = code;
-        return this;
-    }
-
-    public Path file() {
-        return file;
-    }
-
-    public CudaLibraryBuilder file(Path file) {
+    public CudaLibraryBuilder(Path file) {
         this.file = file;
-        return this;
+        this.image = null;
     }
 
-    public Map<CUjit_option, Object> jitOptions() {
+    public Map<CUjit_option, Pointer> jitOptions() {
         return jitOptions;
     }
 
-    public CudaLibraryBuilder jitOption(CUjit_option option, Object value) {
+    public CudaLibraryBuilder jitOption(CUjit_option option, Pointer value) {
         this.jitOptions.put(option, value);
         return this;
     }
 
-    public Map<CUlibraryOption, Object> libraryOptions() {
+    public Map<CUlibraryOption, Pointer> libraryOptions() {
         return libraryOptions;
     }
 
-    public CudaLibraryBuilder libraryOption(CUlibraryOption option, Object value) {
+    public CudaLibraryBuilder libraryOption(CUlibraryOption option, Pointer value) {
         this.libraryOptions.put(option, value);
         return this;
     }
 
     public CULibrary build() {
-        if (code == null && file == null)
+        if (image == null && file == null)
             throw new IllegalStateException("code or file is required");
 
         CULibrary.ByReference libraryRef = new CULibrary.ByReference();
@@ -63,39 +56,33 @@ public class CudaLibraryBuilder {
         CUlibraryOption[] libraryOptionsNames = null;
         Pointer[] jitOptionsValues = null, libraryOptionsValues = null;
         if (!jitOptions.isEmpty()) {
-            jitOptionsNames = getJitOptionNames();
-            throw new UnsupportedOperationException("TODO : handle jit options values");
+            jitOptionsNames = new CUjit_option[jitOptions.size()];
+            jitOptionsValues = new Pointer[jitOptions.size()];
+            @SuppressWarnings("unchecked") Map.Entry<CUjit_option, Pointer>[] entries = jitOptions.entrySet().toArray(Map.Entry[]::new);
+            for (int i = 0; i < entries.length; i++) {
+                jitOptionsNames[i] = entries[i].getKey();
+                jitOptionsValues[i] = entries[i].getValue();
+            }
         }
+
         if (!libraryOptions.isEmpty()) {
-            libraryOptionsNames = getLibraryOptionNames();
-            throw new UnsupportedOperationException("TODO : handle library options values");
+            libraryOptionsNames = new CUlibraryOption[libraryOptions.size()];
+            libraryOptionsValues = new Pointer[libraryOptions.size()];
+            @SuppressWarnings("unchecked") Map.Entry<CUlibraryOption, Pointer>[] entries = libraryOptions.entrySet().toArray(Map.Entry[]::new);
+            for (int i = 0; i < entries.length; i++) {
+                libraryOptionsNames[i] = entries[i].getKey();
+                libraryOptionsValues[i] = entries[i].getValue();
+            }
         }
-        if (code != null) {
-            check(driverAPI().cuLibraryLoadData(libraryRef, code, jitOptionsNames, jitOptionsValues, jitOptions.size(),
+
+        if (image != null) {
+            cuCheck(driverAPI().cuLibraryLoadData(libraryRef, image, jitOptionsNames, jitOptionsValues, jitOptions.size(),
                     libraryOptionsNames, libraryOptionsValues, libraryOptions.size()));
         } else {
-            check(driverAPI().cuLibraryLoadFromFile(libraryRef, file.toAbsolutePath().toString(), jitOptionsNames, jitOptionsValues, jitOptions.size(),
+            cuCheck(driverAPI().cuLibraryLoadFromFile(libraryRef, file.toAbsolutePath().toString(), jitOptionsNames, jitOptionsValues, jitOptions.size(),
                     libraryOptionsNames, libraryOptionsValues, libraryOptions.size()));
         }
         return libraryRef.getValue();
-    }
-
-    private CUjit_option[] getJitOptionNames() {
-        if (jitOptions.isEmpty())
-            return null;
-        return jitOptions.keySet().toArray(CUjit_option[]::new);
-    }
-
-    private CUlibraryOption[] getLibraryOptionNames() {
-        if (libraryOptions.isEmpty())
-            return null;
-        return libraryOptions.keySet().toArray(CUlibraryOption[]::new);
-    }
-
-    private Pointer allocateValues(Map<? extends Enum<?>, Object> options) {
-        if (options.isEmpty())
-            return null;
-        throw new UnsupportedOperationException("TODO");
     }
 
 }

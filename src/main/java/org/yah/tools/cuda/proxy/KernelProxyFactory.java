@@ -17,10 +17,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
-import static org.yah.tools.cuda.api.driver.Driver.CUmodule;
-import static org.yah.tools.cuda.api.nvrtc.NVRTC.nvrtcProgram;
-import static org.yah.tools.cuda.support.DriverSupport.check;
+import org.yah.tools.cuda.api.driver.CUfunction;
+import org.yah.tools.cuda.api.driver.CUmodule;
+
+import org.yah.tools.cuda.api.nvrtc.nvrtcProgram;
+import static org.yah.tools.cuda.support.DriverSupport.cuCheck;
 import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
 
 public class KernelProxyFactory {
@@ -54,7 +55,7 @@ public class KernelProxyFactory {
 
     private CUfunction getKernelFunction(CUmodule module, String name) {
         CUfunction.ByReference hfunc = new CUfunction.ByReference();
-        check(driverAPI().cuModuleGetFunction(hfunc, module, name));
+        cuCheck(driverAPI().cuModuleGetFunction(hfunc, module, name));
         return hfunc.getValue();
     }
 

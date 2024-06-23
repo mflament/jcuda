@@ -1,21 +1,22 @@
 package org.yah.tools.cuda.support;
 
+import com.sun.jna.Memory;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
 import org.yah.tools.cuda.TestsHelper;
-import org.yah.tools.cuda.api.driver.Driver.*;
+import org.yah.tools.cuda.api.driver.CUKernel;
+import org.yah.tools.cuda.api.driver.CULibrary;
+import org.yah.tools.cuda.api.driver.CUcontext;
+import org.yah.tools.cuda.api.driver.CUdevice;
+import org.yah.tools.cuda.api.driver.CUfunction;
 import org.yah.tools.cuda.support.library.CudaLibraryBuilder;
 import org.yah.tools.cuda.support.program.NVRTCProgramBuilder;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
-import java.nio.file.Path;
 
-import static org.yah.tools.cuda.api.driver.Driver.*;
-import static org.yah.tools.cuda.api.nvrtc.NVRTC.nvrtcProgram;
-import static org.yah.tools.cuda.support.DriverSupport.check;
+import org.yah.tools.cuda.api.nvrtc.nvrtcProgram;
+import static org.yah.tools.cuda.support.DriverSupport.cuCheck;
 import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
 import static org.yah.tools.cuda.support.NativeSupport.readNTS;
 
@@ -29,26 +30,25 @@ public class Sandbox {
             ctx.setCurrent();
 
 //            Path file = Path.of("src/test/resources/nvrtcTest.cu");
-            CULibrary library = new CudaLibraryBuilder()
-                    .code(program.getPTX())
-                    .build();
+            CULibrary library = new CudaLibraryBuilder(program.getPTX()).build();
 
-            IntBuffer intBuffer = ByteBuffer.allocateDirect(Integer.BYTES).order(ByteOrder.nativeOrder()).asIntBuffer();
-            check(driverAPI().cuLibraryGetKernelCount(intBuffer, library));
-            int numKernels = intBuffer.get(0);
-            Pointer[] kernels = new Pointer[numKernels];
-            check(driverAPI().cuLibraryEnumerateKernels(kernels, numKernels, library));
+            Memory kernelCount = new Memory(Integer.BYTES);
+            cuCheck(driverAPI().cuLibraryGetKernelCount(kernelCount, library));
+            int numKernels = kernelCount.getInt(0);
+            long pointerSize = Native.POINTER_SIZE;
+            Pointer kernels = new Memory(numKernels * pointerSize);
+            cuCheck(driverAPI().cuLibraryEnumerateKernels(kernels, numKernels, library));
             for (int i = 0; i < numKernels; i++) {
-                CUKernel kernel = new CUKernel(kernels[i]);
+                CUKernel kernel = new CUKernel(kernels.getPointer(i* pointerSize));
                 PointerByReference namePtr = new PointerByReference();
-                check(driverAPI().cuKernelGetName(namePtr, kernel));
+                cuCheck(driverAPI().cuKernelGetName(namePtr, kernel));
                 String name = readNTS(namePtr.getValue(), 1024 * 4);
                 System.out.println("kernel name " + name);
                 CUfunction.ByReference funcPtr = new CUfunction.ByReference();
-                check(driverAPI().cuKernelGetFunction(funcPtr, kernel));
+                cuCheck(driverAPI().cuKernelGetFunction(funcPtr, kernel));
 
                 CUfunction function = funcPtr.getValue();
-                check(driverAPI().cuFuncGetName(namePtr, function));
+                cuCheck(driverAPI().cuFuncGetName(namePtr, function));
                 name = readNTS(namePtr.getValue(), 1024 * 4);
                 System.out.println("function name " + name);
 

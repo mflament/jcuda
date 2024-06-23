@@ -3,72 +3,57 @@ package org.yah.tools.cuda.api.runtime;
 import com.sun.jna.Library;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
+import org.yah.tools.cuda.api.size_t;
 
 public interface Runtime extends Library {
 
-    int CUDA_SUCCESS = 0;
+    cudaError cudaRuntimeGetVersion(Pointer runtimeVersion);
 
-    int CUDA_ERROR_INVALID_IMAGE = 200;
+    cudaError cudaDriverGetVersion(Pointer driverVersion);
 
-    enum cudaMemcpyKind {
-        /**
-         * < Host   -> Host
-         */
-        cudaMemcpyHostToHost,
-        /**
-         * < Host   -> Device
-         */
-        cudaMemcpyHostToDevice,
-        /**
-         * < Device -> Host
-         */
-        cudaMemcpyDeviceToHost,
-        /**
-         * < Device -> Device
-         */
-        cudaMemcpyDeviceTo,
-        /**
-         * < Direction of the transfer is inferred from the pointer values. Requires unified virtual addressing
-         */
-        cudaMemcpyDefaultDevice,
-    }
+    cudaError cudaGetDevice(Pointer device);
 
-    int cudaRuntimeGetVersion(Pointer runtimeVersion);
+    cudaError cudaSetDevice(int device);
 
-    int cudaDriverGetVersion(Pointer driverVersion);
+    cudaError cudaGetDeviceCount(Pointer count);
 
-    int cudaGetDevice(Pointer device);
+    cudaError cudaGetDeviceProperties(Pointer prop, int device);
 
-    int cudaSetDevice(int device);
-
-    int cudaGetDeviceCount(Pointer count);
-
-    int cudaGetDeviceProperties(Pointer prop, int device);
-
-    int cudaDeviceReset();
+    cudaError cudaDeviceReset();
 
     // device management https://docs.nvidia.com/cuda/archive/11.7.0/cuda-runtime-api/group__CUDART__DEVICE.html#group__CUDART__DEVICE
-    int cudaDeviceSynchronize();
+    cudaError cudaDeviceSynchronize();
 
-    Pointer cudaGetErrorString(int error);
+    cudaError cudaGetLastError();
+
+    Pointer cudaGetErrorString(cudaError error);
 
     // memory management https://docs.nvidia.com/cuda/archive/11.7.0/cuda-runtime-api/group__CUDART__MEMORY.html#group__CUDART__MEMORY
-    int cudaMalloc(PointerByReference devPtr, long size);
+    cudaError cudaMalloc(PointerByReference devPtr, long size);
 
-    int cudaFree(Pointer devPtr);
+    cudaError cudaFree(Pointer devPtr);
 
-    int cudaMemcpy(Pointer dst, Pointer src, long count, int kind);
+    cudaError cudaMemcpy(Pointer dst, Pointer src, long count, cudaMemcpyKind kind);
 
-    int cudaMemset(Pointer devPtr, int value, long count);
+    cudaError cudaMemset(Pointer devPtr, int value, long count);
 
-    int cudaMemGetInfo(PointerByReference free, PointerByReference total);
+    cudaError cudaMemGetInfo(PointerByReference free, PointerByReference total);
 
-    int cudaHostRegister(PointerByReference ptr, long size, int flags);
+    cudaError cudaHostRegister(PointerByReference ptr, long size, int flags);
 
-    int cudaHostUnregister(Pointer ptr);
+    cudaError cudaHostUnregister(Pointer ptr);
 
-    int cudaMallocHost(PointerByReference ptr, long size);
+    cudaError cudaMallocHost(PointerByReference ptr, long size);
 
-    int cudaHostGetDevicePointer(PointerByReference pDevice, Pointer pHost, int flags);
+    cudaError cudaHostGetDevicePointer(PointerByReference pDevice, Pointer pHost, int flags);
 
+    cudaError cudaLaunchCooperativeKernel(Pointer func, dim3 gridDim, dim3 blockDim, Pointer[] args, size_t sharedMem, cudaStream stream);
+
+    cudaError cudaLaunchKernel(Pointer func, dim3 gridDim, dim3 blockDim, Pointer[] args, size_t sharedMem, cudaStream stream);
+
+    cudaError cudaStreamCreate(cudaStream.ByReference pStream);
+
+    cudaError cudaStreamDestroy(cudaStream stream);
+
+    cudaError cudaGetFuncBySymbol(PointerByReference functionPtr, Pointer symbolPtr);
 }

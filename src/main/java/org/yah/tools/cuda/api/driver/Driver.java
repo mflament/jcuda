@@ -14,214 +14,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Set;
 
-import static org.yah.tools.cuda.support.DriverSupport.check;
-import static org.yah.tools.cuda.support.DriverSupport.driverAPI;
-import static org.yah.tools.cuda.support.NativeSupport.readNTS;
-
 public interface Driver extends Library {
-
-    class CUdevice extends Pointer {
-        public CUdevice(long peer) {
-            super(peer);
-        }
-
-        public CUdevice(Pointer pointer) {
-            super(Pointer.nativeValue(pointer));
-        }
-
-        private static final int MAX_NAME_SIZE = 512;
-
-        public String getDeviceName() {
-            try (Memory memory = new Memory(MAX_NAME_SIZE)) {
-                check(driverAPI().cuDeviceGetName(memory, MAX_NAME_SIZE, this));
-                return readNTS(memory, MAX_NAME_SIZE);
-            }
-        }
-
-        public int[] getDeviceAttributes(CUdevice_attribute... attributes) {
-            int[] values = new int[attributes.length];
-            try (Memory memory = new Memory(Integer.BYTES)) {
-                for (int i = 0; i < attributes.length; i++) {
-                    getDeviceAttribute(memory, attributes[i]);
-                    values[i] = memory.getInt(0);
-                }
-                return values;
-            }
-        }
-
-        public int getDeviceAttribute(CUdevice_attribute attribute) {
-            try (Memory memory = new Memory(Integer.BYTES)) {
-                getDeviceAttribute(memory, attribute);
-                return memory.getInt(0);
-            }
-        }
-
-        public void getDeviceAttribute(Memory dst, CUdevice_attribute attribute) {
-            check(driverAPI().cuDeviceGetAttribute(dst, attribute.value(), this));
-        }
-
-        public long getTotalMem() {
-            PointerByReference bytes = new PointerByReference();
-            check(driverAPI().cuDeviceTotalMem(bytes, this));
-            return Pointer.nativeValue(bytes.getValue());
-        }
-
-        /**
-         * @param flags mask of {@link CUctx_flags}
-         * @return new cuContext
-         * Note : In most cases it is recommended to use
-         * <a href="https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g9051f2d5c31501997a6cb0530290a300">cuDevicePrimaryCtxRetain</a>.
-         */
-        public CUcontext createContext(CUctx_flags... flags) {
-            CUcontext.ByReference ptrRef = new CUcontext.ByReference();
-            check(driverAPI().cuCtxCreate(ptrRef, Set.of(flags), this));
-            return ptrRef.getValue();
-        }
-
-        public CUcontext primaryCtxRetain() {
-            CUcontext.ByReference ptrRef = new CUcontext.ByReference();
-            check(driverAPI().cuDevicePrimaryCtxRetain(ptrRef, this));
-            return ptrRef.getValue();
-        }
-
-        public void primaryCtxRelease() {
-            check(driverAPI().cuDevicePrimaryCtxRelease(this));
-        }
-
-        public static class ByReference extends PointerByReference {
-            @Override
-            public CUdevice getValue() {
-                return new CUdevice(super.getValue());
-            }
-        }
-    }
-
-    class CUcontext extends Pointer implements AutoCloseable {
-        public CUcontext(long peer) {
-            super(peer);
-        }
-
-        public CUcontext(Pointer pointer) {
-            super(Pointer.nativeValue(pointer));
-        }
-
-        public void setCurrent() {
-            check(driverAPI().cuCtxSetCurrent(this));
-        }
-
-        @Override
-        public void close() {
-            check(driverAPI().cuCtxDestroy(this));
-        }
-
-        public static CUcontext getCurrent() {
-            CUcontext.ByReference ptrRef = new CUcontext.ByReference();
-            check(driverAPI().cuCtxGetCurrent(ptrRef));
-            return ptrRef.getValue();
-        }
-
-        public static class ByReference extends PointerByReference {
-            @Override
-            public CUcontext getValue() {
-                return new CUcontext(super.getValue());
-            }
-        }
-    }
-
-    class CULibrary extends Pointer implements AutoCloseable {
-        public CULibrary(long peer) {
-            super(peer);
-        }
-
-        public CULibrary(Pointer pointer) {
-            super(Pointer.nativeValue(pointer));
-        }
-
-        @Override
-        public void close() throws Exception {
-            check(driverAPI().cuLibraryUnload(this));
-        }
-
-        public static class ByReference extends PointerByReference {
-            @Override
-            public CULibrary getValue() {
-                return new CULibrary(super.getValue());
-            }
-        }
-    }
-
-    class CUmodule extends Pointer implements AutoCloseable {
-        public CUmodule(long peer) {
-            super(peer);
-        }
-
-        public CUmodule(Pointer pointer) {
-            super(Pointer.nativeValue(pointer));
-        }
-
-        @Override
-        public void close() {
-            check(driverAPI().cuModuleUnload(this));
-        }
-
-        public static class ByReference extends PointerByReference {
-            @Override
-            public CUmodule getValue() {
-                return new CUmodule(super.getValue());
-            }
-        }
-    }
-
-    class CUKernel extends Pointer {
-        public CUKernel(long peer) {
-            super(peer);
-        }
-
-        public CUKernel(Pointer pointer) {
-            super(Pointer.nativeValue(pointer));
-        }
-
-        public static class ByReference extends PointerByReference {
-            @Override
-            public CUKernel getValue() {
-                return new CUKernel(super.getValue());
-            }
-        }
-    }
-
-    class CUfunction extends Pointer {
-        public CUfunction(long peer) {
-            super(peer);
-        }
-
-        public CUfunction(Pointer pointer) {
-            super(Pointer.nativeValue(pointer));
-        }
-
-        public static class ByReference extends PointerByReference {
-            @Override
-            public CUfunction getValue() {
-                return new CUfunction(super.getValue());
-            }
-        }
-    }
-
-    class CUstream extends Pointer {
-        public CUstream(long peer) {
-            super(peer);
-        }
-
-        public CUstream(Pointer pointer) {
-            super(Pointer.nativeValue(pointer));
-        }
-
-        public static class ByReference extends PointerByReference {
-            @Override
-            public CUstream getValue() {
-                return new CUstream(super.getValue());
-            }
-        }
-    }
 
     // 6.3. Initialization
     CUresult cuInit(int flags);
@@ -294,13 +87,14 @@ public interface Driver extends Library {
 
     CUresult cuModuleUnload(CUmodule hmod);
 
-    CUresult cuModuleEnumerateFunctions(CUfunction[] functions, int numFunctions, CUmodule mod);
+    CUresult cuModuleEnumerateFunctions(Pointer functions, int numFunctions, CUmodule mod);
 
     CUresult cuModuleGetFunctionCount(IntBuffer count, CUmodule mod);
 
     CUresult cuModuleGetFunctionCount(Memory count, CUmodule mod);
 
     // 6.12. Library Management
+
     CUresult cuLibraryLoadData(CULibrary.ByReference library, Pointer code,
                                CUjit_option[] jitOptions, Pointer[] jitOptionsValues, int numJitOptions,
                                CUlibraryOption[] libraryOptions, Pointer[] libraryOptionValues, int numLibraryOptions);
@@ -311,9 +105,9 @@ public interface Driver extends Library {
 
     CUresult cuLibraryGetKernel(CUKernel.ByReference pKernel, CULibrary library, String name);
 
-    CUresult cuLibraryGetKernelCount(IntBuffer count, CULibrary lib);
+    CUresult cuLibraryGetKernelCount(Pointer count, CULibrary lib);
 
-    CUresult cuLibraryEnumerateKernels(Pointer[] kernels, int numKernels, CULibrary lib);
+    CUresult cuLibraryEnumerateKernels(Pointer kernels, int numKernels, CULibrary lib);
 
     CUresult cuLibraryGetGlobal(PointerByReference dptr, PointerByReference bytes, CULibrary library, String name);
 
@@ -321,7 +115,7 @@ public interface Driver extends Library {
 
     CUresult cuKernelGetName(PointerByReference pointer, CUKernel kernel);
 
-    CUresult cuKernelGetFunction(PointerByReference pFunc, CUKernel kernel);
+    CUresult cuKernelGetFunction(CUfunction.ByReference pFunc, CUKernel kernel);
 
     CUresult cuKernelGetParamInfo(CUKernel kernel, size_t paramIndex, PointerByReference paramOffset, PointerByReference paramSize);
 
@@ -359,17 +153,19 @@ public interface Driver extends Library {
     CUresult cuMemsetD8(Pointer dstDevice, char uc, long N);
 
     // 6.22. Execution Control
-    CUresult cuLaunchKernel(CUfunction f, int gridDimX, int gridDimY, int gridDimZ, int blockDimX, int blockDimY, int blockDimZ, int sharedMemBytes, Pointer hStream, Pointer kernelParams, Pointer extra);
-
     CUresult cuFuncGetName(PointerByReference name, CUfunction hfunc);
 
     CUresult cuFuncGetModule(CUmodule.ByReference hmod, CUfunction hfunc);
 
     CUresult cuFuncGetParamInfo(CUfunction func, size_t paramIndex, PointerByReference paramOffset, PointerByReference paramSize);
 
+    CUresult cuLaunchKernel(CUfunction f, int gridDimX, int gridDimY, int gridDimZ, int blockDimX, int blockDimY, int blockDimZ, int sharedMemBytes, Pointer hStream, Pointer kernelParams, Pointer extra);
+
+    CUresult cuLaunchKernel(CUfunction f, int gridDimX, int gridDimY, int gridDimZ, int blockDimX, int blockDimY, int blockDimZ, int sharedMemBytes, Pointer hStream, Pointer[] kernelParams, Pointer extra);
+
     CUresult cuLaunchCooperativeKernel(CUfunction f, int gridDimX, int gridDimY, int gridDimZ, int blockDimX, int blockDimY, int blockDimZ, int sharedMemBytes, CUstream hStream, Pointer kernelParams);
 
-    CUresult cuLaunchKernelEx(CUlaunchConfig.ByReference config, CUfunction f, Pointer kernelParams, Pointer extra);
+    CUresult cuLaunchKernelEx(CUlaunchConfig.ByReference config, CUfunction f, Pointer[] kernelParams, Pointer extra);
 
     // 6.2 Error handling
     CUresult cuGetErrorName(CUresult error, PointerByReference pStr);

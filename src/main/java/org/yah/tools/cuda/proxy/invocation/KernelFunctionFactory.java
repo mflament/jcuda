@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static org.yah.tools.cuda.api.driver.Driver.CUfunction;
+import org.yah.tools.cuda.api.driver.CUfunction;
 
 public class KernelFunctionFactory {
 
