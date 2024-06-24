@@ -16,7 +16,7 @@ line
     | Whitespace* endline
     ;
 endline
-    : (LineComment | SingleLineBlockComment | MultiLineBlockComment) Newline?
+    : Whitespace* (LineComment | SingleLineBlockComment | MultiLineBlockComment) Newline?
     | Newline;
 
 ifDirective

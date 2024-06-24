@@ -57,6 +57,7 @@ declSpecifiers
     ;
 parameterDeclaration
     : type Identifier arrayDecl? Comma? comment? Newline*
+    | Void
     ;
 
 enumDeclaration: Enum Identifier enumBody?;
@@ -70,7 +71,7 @@ structDefinition: Struct Identifier? structBody?;
 structBody: openBlock structField+ closeBlock;
 structField: doc? type Identifier arrayDecl? Semi comment? Newline*;
 
-typedefDeclaration: Typedef type Identifier;
+typedefDeclaration: Typedef (type Identifier | functionPointer);
 
 type: pointerType | noPointerType;
 pointerType
@@ -81,11 +82,16 @@ noPointerType
     : Const? ( primitiveType
              | structDefinition
              | enumDefinition
+             | Void
              )
     ;
-primitiveType: ( Signed | Unsigned)? (PrimitiveType+ | Identifier);
+
+primitiveType: (Signed | Unsigned)? (PrimitiveType+ | Identifier);
 
 arrayDecl: LeftBracket (IntegerLiteral | defineName)? RightBracket;
+
+functionPointer: type LeftParen Specifier* Star Specifier* Identifier RightParen LeftParen functionPointerParameter* RightParen;
+functionPointerParameter: type Identifier? Comma?;
 
 ignoredStatement: ~Newline+;
 

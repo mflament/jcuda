@@ -4,7 +4,6 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.TokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.yah.tools.cuda.cudapi.APILexer;
 import org.yah.tools.cuda.cudapi.APIParser;
@@ -12,7 +11,6 @@ import org.yah.tools.cuda.cudapi.APIParserBaseVisitor;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 import static org.yah.tools.cuda.cudaapi.CudaAPIFile.PrimitiveType;
@@ -52,13 +50,16 @@ public class CudaAPIFileParser {
 
         @Override
         public CudaAPIFile visitDefineDirective(DefineDirectiveContext ctx) {
-            if (ctx.defineValue() != null && ctx.defineValue().literalDefineValue() != null) {
-                Object value;
-                if (ctx.defineValue().literalDefineValue().IntegerLiteral() != null)
-                    value = Integer.parseInt(ctx.defineValue().literalDefineValue().toString());
-                else
-                    value = Double.parseDouble(ctx.defineValue().literalDefineValue().toString());
-                file.defines.add(new DefineDeclaration(ctx.defineName().getText(), value, getText(ctx.doc()), getText(ctx.comment())));
+            if (ctx.defineValue() != null) {
+                if (ctx.defineValue().literalDefineValue() != null) {
+                    Literal value;
+                    LiteralDefineValueContext valueCtx = ctx.defineValue().literalDefineValue();
+                    if (valueCtx.IntegerLiteral() != null)
+                        value = new Literal(valueCtx.IntegerLiteral().getText());
+                    else
+                        value = new Literal(valueCtx.FloatingLiteral().getText());
+                    file.defines.add(new DefineDeclaration(ctx.defineName().getText(), value, getText(ctx.doc()), getText(ctx.comment())));
+                }
             }
             return null;
         }
@@ -98,11 +99,13 @@ public class CudaAPIFileParser {
         private void visitTypedefDeclaration(String doc, String comment, TypedefDeclarationContext ctx) {
             String name = ctx.Identifier().getText();
             NoPointerTypeContext npType = ctx.type().noPointerType();
-            if (npType != null && npType.enumDefinition() != null && npType.enumDefinition().Identifier() != null && npType.enumDefinition().enumBody() != null) {
-                createEnum(doc, comment, npType.enumDefinition().Identifier().getText(), npType.enumDefinition().enumBody());
-            } else if (npType != null && npType.structDefinition() != null && npType.structDefinition().Identifier() != null && npType.structDefinition().structBody() != null) {
-                createStruct(doc, comment, npType.structDefinition().Identifier().getText(), npType.structDefinition().structBody());
-            } else {
+            if (npType != null && npType.enumDefinition() != null && npType.enumDefinition().enumBody() != null) {
+                createEnum(doc, comment, name, npType.enumDefinition().enumBody());
+            } else if (npType != null && npType.structDefinition() != null && npType.structDefinition().structBody() != null) {
+                createStruct(doc, comment, name, npType.structDefinition().structBody());
+            } else if (ctx.functionPointer() != null) {
+                file.typedefs.add(new TypedefDeclaration());
+            } else if (ctx.type() != null) {
                 Type type = parseType(ctx.type(), name, doc, comment);
                 file.typedefs.add(new TypedefDeclaration(type, ctx.Identifier().getText(), doc, comment));
             }
@@ -112,7 +115,14 @@ public class CudaAPIFileParser {
             String name = ctx.functionSignature().Identifier().getText();
             Type type = parseType(ctx.functionSignature().type(), null, null, null);
             FunctionDeclaration funcDecl = new FunctionDeclaration(type, name, new ArrayList<>(), doc, comment);
+            ctx.functionSignature().parameterDeclaration().stream().map(this::visitFunctionParameter).forEach(funcDecl.parameters()::add);
             file.functions.add(funcDecl);
+        }
+
+        private Parameter visitFunctionParameter(ParameterDeclarationContext ctx) {
+            Type type = parseType(ctx.type(), null, null, null);
+            ArrayDecl arrayDecl = ctx.arrayDecl() != null ? parseArrayDecl(ctx.arrayDecl()) : null;
+            return new Parameter(type, ctx.Identifier().getText(), arrayDecl, null, getText(ctx.comment()));
         }
 
         private Type parseType(TypeContext ctx, @Nullable String name, @Nullable String doc, @Nullable String comment) {
@@ -120,11 +130,11 @@ public class CudaAPIFileParser {
         }
 
         private ArrayDecl parseArrayDecl(ArrayDeclContext ctx) {
-            Object length = null;
+            Literal length = null;
             if (ctx.IntegerLiteral() != null) {
-                length = Integer.parseInt(ctx.IntegerLiteral().getText());
+                length = new Literal(ctx.IntegerLiteral().getText());
             } else if (ctx.defineName() != null) {
-                throw new UnsupportedOperationException("TODO : handle array decl constant initializer " + ctx.getText());
+                length = new Literal(ctx.defineName().getText());
             }
             return new ArrayDecl(length);
         }
@@ -150,10 +160,10 @@ public class CudaAPIFileParser {
 
             @Override
             public Void visitEnumConstant(EnumConstantContext ctx) {
-                Integer value = null;
+                Literal value = null;
                 if (ctx.enumConstantValue() != null) {
                     if (ctx.enumConstantValue().IntegerLiteral() != null) {
-                        value = Integer.parseInt(ctx.enumConstantValue().IntegerLiteral().getText());
+                        value = new Literal(ctx.enumConstantValue().IntegerLiteral().getText());
                     } else {
                         throw new UnsupportedOperationException("TODO: resolve enum value from identifier " + ctx.enumConstantValue().defineName().getText());
                     }
@@ -192,10 +202,6 @@ public class CudaAPIFileParser {
             }
         }
 
-        private static class FunctionVisitor extends APIParserBaseVisitor<Void> {
-
-        }
-
         private class TypeVisitor extends APIParserBaseVisitor<Type> {
             private final String name;
             private final String doc;
@@ -221,14 +227,13 @@ public class CudaAPIFileParser {
             public Type visitNoPointerType(NoPointerTypeContext ctx) {
                 boolean isConst = ctx.Const() != null;
                 if (ctx.primitiveType() != null) {
-                    List<String> names = ctx.primitiveType().PrimitiveType().stream().map(ParseTree::getText).toList();
-                    return new PrimitiveType(names, isConst);
+                    return new PrimitiveType(ctx.primitiveType(), isConst);
                 } else if (ctx.enumDefinition() != null) {
                     EnumDefinitionContext enumCtx = ctx.enumDefinition();
                     if (enumCtx.enumBody() != null && enumCtx.Identifier() != null)
                         createEnum(doc, comment, enumCtx.Identifier().getText(), enumCtx.enumBody());
                     return new EnumType(Objects.requireNonNullElse(getText(enumCtx.Identifier()), name), isConst);
-                } else {
+                } else if (ctx.structDefinition() != null) {
                     StructDefinitionContext structCtx = ctx.structDefinition();
                     if (structCtx.structBody() != null && structCtx.Identifier() != null)
                         createStruct(doc, comment, structCtx.Identifier().getText(), structCtx.structBody());
@@ -238,6 +243,5 @@ public class CudaAPIFileParser {
         }
 
     }
-
 
 }

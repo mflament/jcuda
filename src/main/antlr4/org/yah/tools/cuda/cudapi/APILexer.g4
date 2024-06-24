@@ -20,6 +20,7 @@ Specifier
     | 'static'
     | 'inline'
     | '__CUDA_DEPRECATED'
+    | 'CUDA_CB'
     | 'C' NONDIGIT+ 'API'
     ;
 
@@ -35,9 +36,6 @@ FloatingLiteral:
     Fractionalconstant Exponentpart? Floatingsuffix?
     | Digitsequence Exponentpart Floatingsuffix?
     ;
-
-//CPPBlock: ('#if defined(__cplusplus)' | '#ifdef __cplusplus') .*? ('#else' | '#elif' | '#endif') -> skip;
-//Block: '{' (~'{' | Block)*? '}';
 
 fragment NONDIGIT: [a-zA-Z_];
 
@@ -101,10 +99,11 @@ PrimitiveType
     | 'short'
     | 'int'
     | 'long'
-    | 'void'
     | 'float'
     | 'double'
     ;
+
+Void: 'void';
 
 Typedef: 'typedef';
 

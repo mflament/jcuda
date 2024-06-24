@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 
 import static org.yah.tools.cuda.cudaapi.CudaAPIFile.*;
 
@@ -16,46 +17,55 @@ class CPPParserSupportTest {
 
 //        Path path = CUDA_PATH.resolve("include/cublas_api.h");
 //        Path path = CUDA_PATH.resolve("include/cuda.h");
+        Path path = CUDA_PATH.resolve("include/driver_types.h");
 //        Path path = CUDA_PATH.resolve("include/cuda_runtime_api.h");
-//        Path path = CUDA_PATH.resolve("include/driver_types.h");
 //        library_types.h
-        Path path = CUDA_PATH.resolve("include/nvrtc.h");
+//        Path path = CUDA_PATH.resolve("include/nvrtc.h");
 //        Path path = Paths.get("src/test/resources/sandbox.cpp");
         String source = preprocess(path);
 //        System.out.println(source);
-
         CudaAPIFile file = parse(source);
-        System.out.println(dumpCudaAPIFile(file));
+        System.out.println(dumpCudaAPIFile(file, true, true, true, true, true));
     }
 
-    private static String dumpCudaAPIFile(CudaAPIFile file) {
+    private static String dumpCudaAPIFile(CudaAPIFile file, boolean defines, boolean enums, boolean structs, boolean typedefs, boolean functions) {
         StringBuilder sb = new StringBuilder();
-        sb.append("defines\n");
-        for (List<DefineDeclaration> value : file.defines.values()) {
-            sb.append("  ").append(value).append("\n");
+        if (defines) {
+            sb.append("defines\n");
+            for (List<DefineDeclaration> value : file.defines.values()) {
+                sb.append("  ").append(value).append("\n");
+            }
         }
-        sb.append("\nenums\n");
-        for (List<EnumDeclaration> value : file.enums.values()) {
-            sb.append("  ").append(value).append("\n");
+        if (enums) {
+            sb.append("\nenums\n");
+            for (List<EnumDeclaration> value : file.enums.values()) {
+                sb.append("  ").append(value).append("\n");
+            }
         }
-        sb.append("\nstructs\n");
-        for (List<StructDeclaration> value : file.structs.values()) {
-            sb.append("  ").append(value).append("\n");
+        if (structs) {
+            sb.append("\nstructs\n");
+            for (List<StructDeclaration> value : file.structs.values()) {
+                sb.append("  ").append(value).append("\n");
+            }
         }
-        sb.append("\ntypedefs\n");
-        for (List<TypedefDeclaration> value : file.typedefs.values()) {
-            sb.append("  ").append(value).append("\n");
+        if (typedefs) {
+            sb.append("\ntypedefs\n");
+            for (List<TypedefDeclaration> value : file.typedefs.values()) {
+                sb.append("  ").append(value).append("\n");
+            }
         }
-        sb.append("\nfunctions\n");
-        for (List<FunctionDeclaration> value : file.functions.values()) {
-            sb.append("  ").append(value).append("\n");
+        if (functions) {
+            sb.append("\nfunctions\n");
+            for (List<FunctionDeclaration> value : file.functions.values()) {
+                sb.append("  ").append(value).append("\n");
+            }
         }
         return sb.toString();
     }
 
     private static String preprocess(Path path) throws IOException {
         long start = System.currentTimeMillis();
-        String result = CudaAPIPreprocessor.preprocess(path);
+        String result = CudaAPIPreprocessor.preprocess(path, Set.of("_WIN32"));
         System.out.println("preprocessed in " + (System.currentTimeMillis() - start) + " ms");
         return result;
     }
